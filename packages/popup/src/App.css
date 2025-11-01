@@ -1,0 +1,38 @@
+.app {
+  padding: 20px;
+  min-width: 300px;
+  min-height: 200px;
+}
+
+.card {
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 5px;
+  border: none;
+  border-radius: 4px;
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0 0 10px 0;
+}
+
+p {
+  margin: 10px 0;
+  font-size: 12px;
+  word-break: break-all;
+}

@@ -1,0 +1,58 @@
+{
+  "name": "chrome-extension-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.3",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "clean": "turbo run clean",
+    "type-check": "turbo run type-check",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix"
+  },
+  "devDependencies": {
+    "turbo": "^2.2.3",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "resolutions": {
+    "eslint": "9.38.0",
+    "typescript": "5.9.3",
+    "@types/node": "24.9.2",
+    "tailwindcss": "3.4.18",
+    "postcss": "8.5.6",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "are-we-there-yet": "4.0.2",
+    "gauge": "5.0.2",
+    "glob": "11.0.3",
+    "inflight": "1.0.6",
+    "npmlog": "7.0.1",
+    "stable": "0.1.8"
+  },
+  "overrides": {
+    "eslint": "9.38.0",
+    "typescript": "5.9.3",
+    "@types/node": "24.9.2",
+    "tailwindcss": "3.4.18",
+    "postcss": "8.5.6",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "are-we-there-yet": "4.0.2",
+    "gauge": "5.0.2",
+    "glob": "11.0.3",
+    "inflight": "1.0.6",
+    "npmlog": "7.0.1",
+    "stable": "0.1.8"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "folders": [
+    {
+      "name": "✨ chrome-extension-monorepo",
+      "path": "."
+    },
+    {
+      "name": "⚙️ @chrome-ext/background",
+      "path": "packages/background"
+    },
+    {
+      "name": "🧩 @chrome-ext/content-script",
+      "path": "packages/content-script"
+    },
+    {
+      "name": "📦 @chrome-ext/extension",
+      "path": "packages/extension"
+    },
+    {
+      "name": "💅 @chrome-ext/popup",
+      "path": "packages/popup"
+    }
+  ],
+  "settings": {
+    "eslint.workingDirectories": [
+      "apps/frontend",
+      "apps/storybook",
+      "apps/backend",
+      "packages/ui",
+      "packages/eslint-config"
+    ],
+    "eslint.useFlatConfig": true,
+    "eslint.validate": [
+      "javascript",
+      "javascriptreact",
+      "typescript",
+      "typescriptreact"
+    ]
+  }
+}
