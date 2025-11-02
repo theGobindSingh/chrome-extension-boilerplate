@@ -7,7 +7,7 @@ const App = () => {
 
   useEffect(() => {
     // Get current tab info
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome?.tabs?.query?.({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.url) {
         setCurrentTab(tabs[0].url);
       }
@@ -15,7 +15,7 @@ const App = () => {
   }, []);
 
   const handleSendMessage = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome?.tabs?.query?.({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
         void chrome.tabs.sendMessage(tabs[0].id, {
           type: "PING",
