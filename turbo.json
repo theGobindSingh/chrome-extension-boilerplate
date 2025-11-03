@@ -30,15 +30,6 @@
         "@chrome-ext/content-script#build",
         "@chrome-ext/popup#build"
       ]
-    },
-    "@chrome-ext/extension#dev": {
-      "dependsOn": [
-        "@chrome-ext/background#build",
-        "@chrome-ext/content-script#build",
-        "@chrome-ext/popup#build"
-      ],
-      "cache": false,
-      "persistent": true
     }
   }
 }

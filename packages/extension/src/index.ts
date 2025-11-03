@@ -23,6 +23,7 @@ import {
 } from "fs";
 import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
+import chalk from "chalk";
 
 // Convert import.meta.url to __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -67,10 +68,25 @@ interface ChromeExtPackage {
 // ============================================================================
 
 /**
- * Logs a message with a consistent prefix
+ * Logs a message with a consistent prefix and color
  */
-function log(message: string): void {
-  console.log(`[Extension Builder] ${message}`);
+function log(
+  message: string,
+  type: "info" | "success" | "warn" = "info",
+): void {
+  const prefix = chalk.blue("[Extension Builder]");
+  let coloredMsg = message;
+  switch (type) {
+    case "success":
+      coloredMsg = chalk.green(message);
+      break;
+    case "warn":
+      coloredMsg = chalk.yellow(message);
+      break;
+    default:
+      coloredMsg = chalk.white(message);
+  }
+  console.log(`${prefix} ${coloredMsg}`);
 }
 
 /**
@@ -178,14 +194,17 @@ function discoverChromeExtPackages(): ChromeExtPackage[] {
   for (const packageName of expectedPackages) {
     // Skip if not listed as a dependency
     if (!dependencies[packageName]) {
-      log(`Package ${packageName} not found in dependencies, skipping...`);
+      log(
+        `Package ${packageName} not found in dependencies, skipping...`,
+        "warn",
+      );
       continue;
     }
 
     // Resolve package from node_modules
     const packagePath = resolvePackageDir(packageName);
     if (!packagePath) {
-      log(`Warning: Could not resolve ${packageName} in node_modules`);
+      log(`Warning: Could not resolve ${packageName} in node_modules`, "warn");
       continue;
     }
 
@@ -231,20 +250,23 @@ function copyPackageFiles(packages: ChromeExtPackage[]): void {
 
     // Skip packages without a main file (might be utility packages)
     if (!pkg.mainFile) {
-      log(`  Warning: No main file found for ${pkg.name}, skipping...`);
+      log(`  Warning: No main file found for ${pkg.name}, skipping...`, "warn");
       continue;
     }
 
     // Verify the file actually exists
     if (!existsSync(pkg.mainFile)) {
-      log(`  Warning: Main file does not exist: ${pkg.mainFile}, skipping...`);
+      log(
+        `  Warning: Main file does not exist: ${pkg.mainFile}, skipping...`,
+        "warn",
+      );
       continue;
     }
 
     // Copy to dist with package name (e.g., background.js, content-script.js)
     const targetPath = join(DIST_DIR, `${pkg.name}.js`);
     copyFileSync(pkg.mainFile, targetPath);
-    log(`  ✓ Copied: ${pkg.mainFile} -> ${targetPath}`);
+    log(`  ✓ Copied: ${pkg.mainFile} -> ${targetPath}`, "success");
   }
 }
 
@@ -321,7 +343,7 @@ function createManifest(): void {
 
   const manifestPath = join(DIST_DIR, "manifest.json");
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-  log(`✓ Created manifest at: ${manifestPath}`);
+  log(`✓ Created manifest at: ${manifestPath}`, "success");
 }
 
 /**
@@ -335,7 +357,7 @@ function copyStaticFiles(): void {
   const staticDir = join(EXTENSION_DIR, "static");
 
   if (!existsSync(staticDir)) {
-    log("No static directory found, skipping static files...");
+    log("No static directory found, skipping static files...", "warn");
     return;
   }
 
@@ -355,7 +377,7 @@ function copyStaticFiles(): void {
       const sourcePath = join(iconsSourceDir, file);
       const targetPath = join(iconsTargetDir, file);
       copyFileSync(sourcePath, targetPath);
-      log(`  ✓ Copied icon: ${file}`);
+      log(`  ✓ Copied icon: ${file}`, "success");
     }
   }
 
@@ -368,7 +390,7 @@ function copyStaticFiles(): void {
     if (existsSync(popupHtmlSource)) {
       const popupHtmlTarget = join(DIST_DIR, "popup.html");
       copyFileSync(popupHtmlSource, popupHtmlTarget);
-      log(`  ✓ Copied popup.html`);
+      log(`  ✓ Copied popup.html`, "success");
     }
 
     // === COPY POPUP ASSETS ===
@@ -384,7 +406,7 @@ function copyStaticFiles(): void {
         const sourcePath = join(popupAssetsSource, file);
         const targetPath = join(popupAssetsTarget, file);
         copyFileSync(sourcePath, targetPath);
-        log(`  ✓ Copied asset: ${file}`);
+        log(`  ✓ Copied asset: ${file}`, "success");
       }
     }
   }
@@ -406,11 +428,17 @@ function copyStaticFiles(): void {
  * Result: A complete Chrome extension in packages/extension/dist/
  */
 function assembleExtension(): void {
-  log("Assembling Chrome Extension...");
+  log("");
+  log(chalk.bold("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+  log(chalk.bold("Assembling Chrome Extension..."));
+  log(chalk.bold("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+  log("");
 
   // Step 1: Resolve workspace packages from node_modules
   const packages = discoverChromeExtPackages();
-  log(`Discovered ${packages.length} packages from node_modules`);
+  log("");
+  log(chalk.cyan(`Discovered ${packages.length} packages from node_modules`));
+  log("");
 
   // Step 2: Copy built JS files (background.js, content-script.js, etc.)
   copyPackageFiles(packages);
@@ -421,14 +449,22 @@ function assembleExtension(): void {
   // Step 4: Copy icons, popup HTML, and other static assets
   copyStaticFiles();
 
-  log("✓ Assembly complete!");
+  log("");
+  log(chalk.green.bold("✓ Assembly complete!"));
+  log("");
   const now = new Date();
   const formatted = now.toLocaleString();
-  log(`Extension ready at: ${DIST_DIR}`);
-  log(`Build finished at: ${formatted}`);
+  log(chalk.cyan(`Extension ready at: ${DIST_DIR}`));
+  log("");
+  log(chalk.bold.magenta(`Build finished at:`));
+  log(chalk.bold.magenta(formatted));
+  log("");
   log(
-    `Load it in Chrome: chrome://extensions/ → "Load unpacked" → select dist folder`,
+    chalk.yellowBright(
+      `Load it in Chrome: chrome://extensions/ → "Load unpacked" → select dist folder`,
+    ),
   );
+  log("");
 }
 
 /**
@@ -442,11 +478,6 @@ function assembleExtension(): void {
  * are built BEFORE this runs, so we just assemble the pieces.
  */
 function main(): void {
-  log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  log("Chrome Extension Assembler");
-  log("Turbo handles building. This script assembles the extension.");
-  log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
   assembleExtension();
 }
 

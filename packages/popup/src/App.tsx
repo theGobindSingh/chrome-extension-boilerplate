@@ -27,7 +27,7 @@ const App = () => {
 
   return (
     <div className="app">
-      <h1>Chrome Extension Popup</h1>
+      <h1>Chrome Extension Popup New</h1>
       <div className="card">
         <p>Current Tab: {currentTab}</p>
         <button onClick={() => setCount((count) => count + 1)}>

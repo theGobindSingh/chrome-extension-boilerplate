@@ -4,7 +4,7 @@
   "type": "module",
   "main": "dist/content-script.js",
   "scripts": {
-    "dev": "rollup -c -w",
+    "dev": "concurrently \"tsc -w\" \"rollup -c -w\"",
     "build": "tsc && rollup -c",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist",
@@ -24,6 +24,7 @@
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@rollup/plugin-typescript": "^12.1.1",
     "@types/chrome": "^0.0.277",
+    "concurrently": "^9.2.1",
     "eslint": "^9.38.0",
     "rollup": "^4.24.3",
     "tslib": "^2.8.1",
