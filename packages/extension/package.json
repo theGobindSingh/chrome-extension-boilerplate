@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts && tsx src/index.ts --watch",
+    "dev": "tsx scripts/watcher.ts",
     "build": "tsx src/index.ts",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit"
@@ -14,6 +14,7 @@
     "@chrome-ext/popup": "workspace:*"
   },
   "devDependencies": {
+    "chokidar": "^3.6.0",
     "@kami-ui/eslint-config": "^0.0.2",
     "@types/chrome": "^0.0.277",
     "@types/node": "^22.8.7",
