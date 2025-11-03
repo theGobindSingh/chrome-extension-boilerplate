@@ -4,7 +4,7 @@
   "type": "module",
   "main": "dist/popup.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite build --watch",
     "build": "tsc && vite build",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist",

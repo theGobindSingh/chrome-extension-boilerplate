@@ -422,7 +422,10 @@ function assembleExtension(): void {
   copyStaticFiles();
 
   log("✓ Assembly complete!");
+  const now = new Date();
+  const formatted = now.toLocaleString();
   log(`Extension ready at: ${DIST_DIR}`);
+  log(`Build finished at: ${formatted}`);
   log(
     `Load it in Chrome: chrome://extensions/ → "Load unpacked" → select dist folder`,
   );
