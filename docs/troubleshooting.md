@@ -29,3 +29,12 @@
 - Type errors: run `pnpm type-check`
 - Lint issues: `pnpm lint:fix`
 - Clear caches and rebuild: `pnpm clean && pnpm build`
+
+## Wrong Node.js version
+
+This template requires Node `24.x` (see `engines` in the root `package.json`). If you're on an older Node (e.g. an LTS release) via a version manager:
+
+- With nvm: `nvm install` (reads `.nvmrc` at the repo root) then `nvm use`
+- With fnm/volta or similar: point them at the version in `.nvmrc`
+
+Symptoms of a Node mismatch include `pnpm install` engine warnings, or build tools (Vite/Rollup/TypeScript) failing with obscure syntax or native-binding errors that disappear once you switch to Node 24.
