@@ -41,6 +41,7 @@ interface PackageJson {
   name?: string;
   version?: string;
   displayName?: string; // Custom field for extension display name
+  description?: string; // Used as the manifest description
   main?: string; // Main entry point
   dependencies?: Record<string, string>; // Package dependencies
   exports?: {
@@ -242,8 +243,10 @@ function discoverChromeExtPackages(): ChromeExtPackage[] {
  *   packages/background/dist/index.js → packages/extension/dist/background.js
  *   packages/popup/dist/popup.js      → packages/extension/dist/popup.js
  */
-function copyPackageFiles(packages: ChromeExtPackage[]): void {
+function copyPackageFiles(packages: ChromeExtPackage[]): string[] {
   ensureDir(DIST_DIR);
+
+  const missing: string[] = [];
 
   for (const pkg of packages) {
     log(`Processing package: ${pkg.name}`);
@@ -251,6 +254,7 @@ function copyPackageFiles(packages: ChromeExtPackage[]): void {
     // Skip packages without a main file (might be utility packages)
     if (!pkg.mainFile) {
       log(`  Warning: No main file found for ${pkg.name}, skipping...`, "warn");
+      missing.push(`${pkg.name}: no main file found`);
       continue;
     }
 
@@ -260,6 +264,7 @@ function copyPackageFiles(packages: ChromeExtPackage[]): void {
         `  Warning: Main file does not exist: ${pkg.mainFile}, skipping...`,
         "warn",
       );
+      missing.push(`${pkg.name}: main file does not exist (${pkg.mainFile})`);
       continue;
     }
 
@@ -268,6 +273,8 @@ function copyPackageFiles(packages: ChromeExtPackage[]): void {
     copyFileSync(pkg.mainFile, targetPath);
     log(`  ✓ Copied: ${pkg.mainFile} -> ${targetPath}`, "success");
   }
+
+  return missing;
 }
 
 /**
@@ -297,13 +304,14 @@ function createManifest(): void {
       extensionPackageJson.name ??
       "Chrome Extension",
     version: rootPackageJson.version ?? "1.0.0",
-    description: "A Chrome extension",
+    description: extensionPackageJson.description ?? "A Chrome extension",
 
     // Browser action - the popup that appears when clicking the extension icon
     action: {
       default_popup: "popup.html", // Built from packages/popup
       default_icon: {
         16: "icons/icon16.png",
+        32: "icons/icon32.png",
         48: "icons/icon48.png",
         128: "icons/icon128.png",
       },
@@ -336,6 +344,7 @@ function createManifest(): void {
     // Extension icons (shown in Chrome's extension management)
     icons: {
       16: "icons/icon16.png",
+      32: "icons/icon32.png",
       48: "icons/icon48.png",
       128: "icons/icon128.png",
     },
@@ -353,12 +362,14 @@ function createManifest(): void {
  * - Popup HTML from packages/popup/dist/index.html
  * - Popup assets (CSS, JS bundles) from packages/popup/dist/assets/
  */
-function copyStaticFiles(): void {
+function copyStaticFiles(): string[] {
   const staticDir = join(EXTENSION_DIR, "static");
+  const missing: string[] = [];
 
   if (!existsSync(staticDir)) {
     log("No static directory found, skipping static files...", "warn");
-    return;
+    missing.push("static directory not found");
+    return missing;
   }
 
   // === COPY EXTENSION ICONS ===
@@ -391,6 +402,9 @@ function copyStaticFiles(): void {
       const popupHtmlTarget = join(DIST_DIR, "popup.html");
       copyFileSync(popupHtmlSource, popupHtmlTarget);
       log(`  ✓ Copied popup.html`, "success");
+    } else {
+      log(`  Warning: popup.html source not found: ${popupHtmlSource}`, "warn");
+      missing.push(`popup.html not found (${popupHtmlSource})`);
     }
 
     // === COPY POPUP ASSETS ===
@@ -409,7 +423,11 @@ function copyStaticFiles(): void {
         log(`  ✓ Copied asset: ${file}`, "success");
       }
     }
+  } else {
+    missing.push("@chrome-ext/popup not resolved in node_modules");
   }
+
+  return missing;
 }
 
 // ============================================================================
@@ -441,13 +459,30 @@ function assembleExtension(): void {
   log("");
 
   // Step 2: Copy built JS files (background.js, content-script.js, etc.)
-  copyPackageFiles(packages);
+  const missingPackageFiles = copyPackageFiles(packages);
 
   // Step 3: Generate the manifest.json configuration file
   createManifest();
 
   // Step 4: Copy icons, popup HTML, and other static assets
-  copyStaticFiles();
+  const missingStaticFiles = copyStaticFiles();
+
+  const missing = [...missingPackageFiles, ...missingStaticFiles];
+  if (missing.length > 0) {
+    log("");
+    log(chalk.red.bold("✗ Assembly failed: required output is missing"));
+    for (const item of missing) {
+      log(`  - ${item}`, "warn");
+    }
+    log("");
+    log(
+      chalk.red(
+        "Make sure background, content-script, and popup have all been built (e.g. `pnpm build`) before assembling.",
+      ),
+    );
+    log("");
+    process.exit(1);
+  }
 
   log("");
   log(chalk.green.bold("✓ Assembly complete!"));
