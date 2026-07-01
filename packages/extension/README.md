@@ -1,152 +1,119 @@
-# Chrome Extension Builder
+# Chrome Extension Assembler
 
-This package provides the main extension build system that compiles and bundles code from all packages in the monorepo to create a complete Chrome extension.
+This package assembles the final Chrome extension by copying already-built output from the other workspace packages (`@chrome-ext/background`, `@chrome-ext/content-script`, `@chrome-ext/popup`) into `packages/extension/dist/`, and generating `manifest.json`.
 
-## Features
-
-- 🏗️ **Unified Build System**: Compiles all packages (background, content-script, popup) into a single Chrome extension
-- 📦 **Automatic Manifest Generation**: Creates `manifest.json` with proper Chrome Extension v3 format
-- 🎨 **Icon Generation**: Creates default SVG icons if none are provided
-- 🔄 **Dependency Management**: Automatically builds all dependencies in the correct order
-- 🚀 **Production Ready**: Generates optimized builds for Chrome Web Store submission
+It does **not** build the other packages itself — Turbo builds `background`, `content-script`, and `popup` first (see `turbo.json`), and this package only assembles the resulting files.
 
 ## Build Structure
 
-The builder creates the following structure in the `dist` directory:
+The assembler produces the following structure in `dist/`:
 
 ```
 dist/
-├── manifest.json          # Chrome Extension manifest v3
-├── background.js         # Service worker from @chrome-ext/background
-├── content-script.js     # Content script from @chrome-ext/content-script
-├── popup.html           # Popup HTML (generated or copied)
-├── popup.js             # React popup app from @chrome-ext/popup
-├── assets/              # CSS and other assets from popup
-└── icons/               # Extension icons (SVG format)
-    ├── icon16.png
-    ├── icon32.png
-    ├── icon48.png
-    └── icon128.png
+├── manifest.json          # Chrome Extension Manifest V3
+├── background.js          # from @chrome-ext/background (dist/index.mjs or dist/index.cjs)
+├── content-script.js      # from @chrome-ext/content-script (dist/content-script.js)
+├── popup.html              # from @chrome-ext/popup (dist/index.html, renamed)
+├── assets/                 # CSS/JS bundles referenced by popup.html
+└── icons/                  # copied as-is from packages/extension/static/icons/
 ```
+
+There is no automatic icon generation — icons must be provided in `static/icons/` (see below).
 
 ## Usage
 
-### Build the Extension
+### Build the extension
 
 From the root of the monorepo:
+
 ```bash
 pnpm build
 ```
 
-Or from this package directory:
+Or from this package directory (assumes dependencies are already built):
+
 ```bash
 pnpm run build
 ```
 
-### Development Mode
+### Development mode
 
-For development with watch mode (when implemented):
 ```bash
 pnpm run dev
 ```
+
+This runs `scripts/watcher.ts`, which watches this package's `src/` plus the built output of `background`, `content-script`, and `popup` in `node_modules/@chrome-ext/*`, and re-runs the assembler whenever any of them change. It does **not** start the other packages' own watch builds — run those separately (see the root `README.md` / `docs/development.md` for the recommended multi-terminal setup).
 
 ### Load in Chrome
 
 After building:
 
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable "Developer mode" (toggle in top right)
+1. Open `chrome://extensions/`
+2. Enable "Developer mode"
 3. Click "Load unpacked"
 4. Select the `packages/extension/dist` folder
-5. The extension will be loaded and ready to use!
 
 ## Configuration
 
-### Extension Metadata
+### Extension metadata
 
-The extension name and version are automatically read from this package's `package.json`:
+- `name` in the generated manifest comes from `packages/extension/package.json`'s `displayName`, falling back to `name`.
+- `version` comes from the **root** `package.json`.
+- `description` is currently a hardcoded string in `createManifest()` — edit `src/index.ts` directly to change it.
 
-```json
-{
-  "name": "@chrome-ext/extension",
-  "version": "1.0.0",
-  "displayName": "TypeScript Chrome Extension"
-}
-```
+### Manifest customization
 
-- `displayName` is used as the extension name in Chrome
-- Falls back to `name` (without scope) if `displayName` is not set
-- `version` is used as the extension version
+The manifest is generated in `src/index.ts` inside `createManifest()`. You can customize there:
 
-### Manifest Customization
-
-The manifest is generated in `src/index.ts` in the `generateManifest()` method. You can customize:
-
-- Permissions
-- Content script match patterns
+- Permissions (`permissions` array — defaults to `storage`, `activeTab`, `tabs`, `cookies`, `alarms`, `contextMenus`)
+- Content script match patterns (`content_scripts[0].matches` — defaults to `<all_urls>`)
 - Background service worker configuration
-- Popup settings
-- Icons
+- Popup/action settings
+- Icon paths
 
-### Custom Icons
+### Icons
 
-Place your custom icons in the `static/icons/` directory:
-- `icon16.png` - Small icon for browser UI
-- `icon32.png` - Medium icon for extension management
-- `icon48.png` - Icon for extension management page
-- `icon128.png` - Large icon for Chrome Web Store
+Place PNG icons in `static/icons/`:
 
-If custom icons aren't provided, SVG icons with "TS" text will be generated automatically.
+- `icon16.png`
+- `icon48.png`
+- `icon128.png`
 
-### Static Assets
+These are copied as-is into `dist/icons/`. There is no fallback/auto-generated icon — the build will simply omit missing files (Chrome will show a default icon, or the manifest reference will point to a missing file).
 
-Place any additional static assets (images, fonts, etc.) in the `static/` directory. They will be copied to the extension root during build.
+### Static assets
 
-## Architecture
+Any other files placed in `packages/extension/static/` alongside `icons/` are **not** currently copied by the assembler — only the `icons/` subdirectory and the popup's build output are handled in `copyStaticFiles()`. Extend `src/index.ts` if you need to copy additional static assets.
 
-The build system uses a class-based approach with the following steps:
+## How it works
 
-1. **Clean**: Remove existing dist directory
-2. **Build Dependencies**: Build background, content-script, and popup packages
-3. **Copy Assets**: Copy built files to correct locations in dist
-4. **Generate Manifest**: Create Chrome Extension v3 manifest
-5. **Create Icons**: Generate default icons if needed
-6. **Finalize**: Ensure all required files exist
+`src/index.ts` runs these steps in order:
 
-## Package Dependencies
-
-This package depends on:
-- `@chrome-ext/background` - Service worker functionality
-- `@chrome-ext/content-script` - Content script functionality  
-- `@chrome-ext/popup` - React popup UI
-
-The build system automatically handles building these dependencies in the correct order using Turbo.
+1. `discoverChromeExtPackages()` — resolves `@chrome-ext/background`, `@chrome-ext/content-script`, and `@chrome-ext/popup` via pnpm's `node_modules` workspace symlinks, and locates each package's built main file.
+2. `copyPackageFiles()` — copies each package's main file into `dist/` as `<name>.js` (e.g. `background.js`).
+3. `createManifest()` — writes `dist/manifest.json`.
+4. `copyStaticFiles()` — copies `static/icons/*` into `dist/icons/`, and the popup's built `index.html`/`assets/*` into `dist/popup.html`/`dist/assets/*`.
 
 ## Troubleshooting
 
-### Build Fails
+### Build fails
+
 - Ensure all dependencies are installed: `pnpm install`
 - Check that other packages build successfully individually
-- Clear Turbo cache: `pnpm turbo clean`
+- Clear Turbo cache: `pnpm turbo clean` (or `pnpm clean`)
 
-### Extension Won't Load in Chrome
-- Check the manifest.json is valid JSON
-- Ensure all referenced files exist in dist/
-- Check Chrome DevTools console for errors
-- Verify extension permissions are appropriate
+### Extension won't load in Chrome
 
-### Missing Files
-- Check that source packages have built successfully
-- Verify file paths in the copy operations
-- Ensure static assets are in the correct directory
+- Check that `manifest.json` is valid JSON
+- Ensure all referenced files exist in `dist/`
+- Check the Chrome extensions page / DevTools console for errors
+
+### Missing files
+
+- Check that source packages (`background`, `content-script`, `popup`) built successfully to their own `dist/`
+- Verify `node_modules/@chrome-ext/*` symlinks resolve correctly (reinstall with `pnpm install` if not)
+- The assembler logs a warning (not an error) for any package it can't find a main file for — check the build output
 
 ## Development
 
-To modify the build system, edit `src/index.ts`. The main class is `ExtensionBuilder` with static methods for each build step.
-
-Key methods:
-- `build()` - Main build orchestrator
-- `buildDependencies()` - Build all package dependencies
-- `copyBuiltAssets()` - Copy files to dist directory
-- `generateManifest()` - Create manifest.json
-- `createDefaultIcons()` - Generate fallback icons
+To modify the assembly logic itself, edit `src/index.ts` — it's a set of standalone functions (`discoverChromeExtPackages`, `copyPackageFiles`, `createManifest`, `copyStaticFiles`, `assembleExtension`), not a class.
