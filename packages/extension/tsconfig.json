@@ -12,7 +12,7 @@
     "types": ["chrome", "node"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "noEmit": false
+    "outDir": "./node_modules/.cache/tsc-out"
   },
   "include": ["scripts/**/*", "src/**/*"]
 }

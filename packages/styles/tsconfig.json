@@ -12,7 +12,8 @@
     "types": ["node"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "noEmit": true,
+    "rootDir": "./scripts",
+    "outDir": "./node_modules/.cache/tsc-out",
     "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tsbuildinfo"
   },
   "include": ["scripts/**/*"]
