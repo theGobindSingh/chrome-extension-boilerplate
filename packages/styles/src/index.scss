@@ -1,0 +1,31 @@
+// Styles for elements the content script injects into the page
+// (packages/content-script/src/index.ts). Compiled by this package to a
+// single content-script.css, which the extension assembler copies into
+// dist/ and which is declared in the manifest's content_scripts.css. That
+// means the browser injects it the same privileged way it injects
+// content-script.js - it isn't subject to the host page's CSP the way
+// inline styles or JS-created <style> elements would be under a strict
+// style-src policy.
+
+$notification-bg: #4caf50;
+$notification-fg: white;
+$notification-radius: 8px;
+$notification-shadow: rgba(0, 0, 0, 0.1);
+$highlight-color: yellow;
+
+.chrome-ext-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  padding: 15px 20px;
+  font-family: Arial, sans-serif;
+  color: $notification-fg;
+  background: $notification-bg;
+  border-radius: $notification-radius;
+  box-shadow: 0 4px 6px $notification-shadow;
+}
+
+.chrome-ext-highlight {
+  background-color: $highlight-color !important;
+}

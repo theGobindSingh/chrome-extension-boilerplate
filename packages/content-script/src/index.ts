@@ -8,20 +8,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "PING") {
     console.log("Received PING with count:", message.count);
 
-    // Create a visual indicator on the page
+    // Create a visual indicator on the page. Styling comes from
+    // content-script.css (compiled by @chrome-ext/styles, declared in the
+    // manifest), not inline styles, so it isn't silently dropped by a page
+    // with a strict style-src CSP.
     const notification = document.createElement("div");
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #4CAF50;
-      color: white;
-      padding: 15px 20px;
-      border-radius: 8px;
-      z-index: 10000;
-      font-family: Arial, sans-serif;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    `;
+    notification.className = "chrome-ext-notification";
     notification.textContent = `Message received! Count: ${message.count}`;
     document.body.appendChild(notification);
 
@@ -46,18 +38,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Example: Modify page content
-const injectCustomStyles = () => {
-  const style = document.createElement("style");
-  style.textContent = `
-    /* Custom styles injected by extension */
-    .chrome-ext-highlight {
-      background-color: yellow !important;
-    }
-  `;
-  document.head.appendChild(style);
-};
+// .chrome-ext-highlight is defined in content-script.css (manifest-declared),
+// so elements can be highlighted with `element.classList.add("chrome-ext-highlight")`.
 
-injectCustomStyles();
+// Example: Run code in the page's own JS context ("MAIN world"). Content
+// scripts execute in an isolated world with no access to page-defined
+// globals, so reaching them requires injecting a <script> tag pointing at a
+// web_accessible_resource (see packages/page-bridge and the manifest's
+// web_accessible_resources entry).
+const bridgeScript = document.createElement("script");
+bridgeScript.src = chrome.runtime.getURL("page-bridge.js");
+bridgeScript.addEventListener("load", () => bridgeScript.remove());
+document.documentElement.appendChild(bridgeScript);
+
+window.addEventListener("chrome-ext:page-bridge-ready", ((
+  event: CustomEvent<{ href: string }>,
+) => {
+  console.log("Content script observed page-bridge ready:", event.detail);
+}) as EventListener);
 
 // Send message to background script
 void chrome.runtime.sendMessage({

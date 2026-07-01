@@ -2,6 +2,8 @@
   "name": "@chrome-ext/extension",
   "version": "1.0.0",
   "type": "module",
+  "displayName": "Chrome Extension",
+  "description": "A Chrome extension",
   "scripts": {
     "dev": "tsx scripts/watcher.ts",
     "build": "tsx src/index.ts",
@@ -11,7 +13,9 @@
   "dependencies": {
     "@chrome-ext/background": "workspace:*",
     "@chrome-ext/content-script": "workspace:*",
-    "@chrome-ext/popup": "workspace:*"
+    "@chrome-ext/page-bridge": "workspace:*",
+    "@chrome-ext/popup": "workspace:*",
+    "@chrome-ext/styles": "workspace:*"
   },
   "devDependencies": {
     "@kami-ui/eslint-config": "^0.0.6",

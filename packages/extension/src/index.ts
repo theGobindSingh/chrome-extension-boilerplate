@@ -186,9 +186,12 @@ function discoverChromeExtPackages(): ChromeExtPackage[] {
   const dependencies = extensionPackageJson.dependencies ?? {};
 
   // List of expected Chrome extension packages
+  // Note: @chrome-ext/styles is intentionally excluded - it produces a CSS
+  // file, not a JS main file, so it's handled separately in copyStaticFiles().
   const expectedPackages = [
     "@chrome-ext/background",
     "@chrome-ext/content-script",
+    "@chrome-ext/page-bridge",
     "@chrome-ext/popup",
   ];
 
@@ -328,6 +331,18 @@ function createManifest(): void {
       {
         matches: ["<all_urls>"], // Run on all URLs (change as needed)
         js: ["content-script.js"], // Built from packages/content-script
+        css: ["content-script.css"], // Built from packages/styles (SCSS + PostCSS)
+      },
+    ],
+
+    // Resources the extension exposes to web pages. page-bridge.js is loaded
+    // by the content script via a <script src="chrome-extension://.../page-bridge.js">
+    // tag so it can run in the page's own JS context (see packages/page-bridge) -
+    // without this entry the page would not be allowed to load it.
+    web_accessible_resources: [
+      {
+        resources: ["page-bridge.js"],
+        matches: ["<all_urls>"],
       },
     ],
 
@@ -425,6 +440,35 @@ function copyStaticFiles(): string[] {
     }
   } else {
     missing.push("@chrome-ext/popup not resolved in node_modules");
+  }
+
+  // === COPY CONTENT SCRIPT CSS ===
+  // @chrome-ext/styles compiles SCSS + PostCSS to a single content-script.css,
+  // which is declared in the manifest's content_scripts.css. This isn't a
+  // generic ".js main file" package like the others, so it's copied here
+  // instead of via copyPackageFiles().
+  const stylesPackagePath = resolvePackageDir("@chrome-ext/styles");
+  if (stylesPackagePath) {
+    const contentScriptCssSource = join(
+      stylesPackagePath,
+      "dist",
+      "content-script.css",
+    );
+    if (existsSync(contentScriptCssSource)) {
+      const contentScriptCssTarget = join(DIST_DIR, "content-script.css");
+      copyFileSync(contentScriptCssSource, contentScriptCssTarget);
+      log(`  ✓ Copied content-script.css`, "success");
+    } else {
+      log(
+        `  Warning: content-script.css source not found: ${contentScriptCssSource}`,
+        "warn",
+      );
+      missing.push(
+        `content-script.css not found (${contentScriptCssSource})`,
+      );
+    }
+  } else {
+    missing.push("@chrome-ext/styles not resolved in node_modules");
   }
 
   return missing;

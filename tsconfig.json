@@ -23,7 +23,13 @@
       "path": "./packages/extension"
     },
     {
+      "path": "./packages/page-bridge"
+    },
+    {
       "path": "./packages/popup"
+    },
+    {
+      "path": "./packages/styles"
     }
   ]
 }

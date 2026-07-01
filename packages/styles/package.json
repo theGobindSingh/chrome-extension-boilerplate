@@ -1,0 +1,25 @@
+{
+  "name": "@chrome-ext/styles",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/content-script.css",
+  "scripts": {
+    "dev": "tsx scripts/watch.ts",
+    "build": "tsc --noEmit && tsx scripts/build.ts",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules/.cache",
+    "lint": "eslint scripts --ext .ts",
+    "lint:fix": "eslint scripts --ext .ts --fix"
+  },
+  "devDependencies": {
+    "@kami-ui/eslint-config": "^0.0.6",
+    "@types/node": "^26.1.0",
+    "autoprefixer": "^10.4.21",
+    "chokidar": "^5.0.0",
+    "eslint": "9.39.4",
+    "postcss": "8.5.16",
+    "sass": "^1.94.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

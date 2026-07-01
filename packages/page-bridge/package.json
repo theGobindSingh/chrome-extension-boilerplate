@@ -1,0 +1,25 @@
+{
+  "name": "@chrome-ext/page-bridge",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/page-bridge.js",
+  "scripts": {
+    "dev": "concurrently \"tsc -w\" \"rollup -c -w\"",
+    "build": "tsc --noEmit && rollup -c",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules/.cache",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+  },
+  "devDependencies": {
+    "@kami-ui/eslint-config": "^0.0.6",
+    "@rollup/plugin-commonjs": "^29.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "concurrently": "^10.0.3",
+    "eslint": "9.39.4",
+    "rollup": "^4.62.2",
+    "tslib": "^2.8.1",
+    "typescript": "^6.0.3"
+  }
+}
