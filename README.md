@@ -14,6 +14,8 @@ A batteries-included template for building a Chrome Extension (MV3) with TypeScr
 
 - `packages/popup` — React popup UI (Vite)
 - `packages/content-script` — Content script injected into pages (Rollup)
+- `packages/page-bridge` — Script injected into the page's own JS context ("MAIN world"), loaded by the content script as a `web_accessible_resource` (Rollup)
+- `packages/styles` — SCSS + PostCSS pipeline that compiles `content-script.css`
 - `packages/background` — Background service worker (Rollup)
 - `packages/extension` — Assembler that creates the final Chrome extension `dist/`
 
@@ -51,6 +53,8 @@ packages/extension/dist/
 ├─ manifest.json
 ├─ background.js          # from @chrome-ext/background
 ├─ content-script.js      # from @chrome-ext/content-script
+├─ content-script.css     # from @chrome-ext/styles (SCSS + PostCSS)
+├─ page-bridge.js         # from @chrome-ext/page-bridge (web_accessible_resources)
 ├─ popup.html             # from @chrome-ext/popup build
 ├─ assets/*               # popup static assets
 └─ icons/*                # your icons from packages/extension/static/icons
