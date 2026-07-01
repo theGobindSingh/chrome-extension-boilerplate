@@ -1,41 +1,48 @@
+import type {
+  ContentScriptLoadedMessage,
+  ExtensionMessage,
+} from "@chrome-ext/shared-types";
+
 // Content script that runs on web pages
 console.log("Content script loaded");
 
 // Listen for messages from popup or background
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("Content script received message:", message);
+chrome.runtime.onMessage.addListener(
+  (message: ExtensionMessage, sender, sendResponse) => {
+    console.log("Content script received message:", message);
 
-  if (message.type === "PING") {
-    console.log("Received PING with count:", message.count);
+    if (message.type === "PING") {
+      console.log("Received PING with count:", message.count);
 
-    // Create a visual indicator on the page. Styling comes from
-    // content-script.css (compiled by @chrome-ext/styles, declared in the
-    // manifest), not inline styles, so it isn't silently dropped by a page
-    // with a strict style-src CSP.
-    const notification = document.createElement("div");
-    notification.className = "chrome-ext-notification";
-    notification.textContent = `Message received! Count: ${message.count}`;
-    document.body.appendChild(notification);
+      // Create a visual indicator on the page. Styling comes from
+      // content-script.css (compiled by @chrome-ext/styles, declared in the
+      // manifest), not inline styles, so it isn't silently dropped by a page
+      // with a strict style-src CSP.
+      const notification = document.createElement("div");
+      notification.className = "chrome-ext-notification";
+      notification.textContent = `Message received! Count: ${message.count}`;
+      document.body.appendChild(notification);
 
-    // Remove after 3 seconds
-    setTimeout(() => {
-      notification.remove();
-    }, 3000);
+      // Remove after 3 seconds
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
 
-    sendResponse({ status: "success" });
-    return true; // Keep message channel open for async response
-  }
+      sendResponse({ status: "success" });
+      return true; // Keep message channel open for async response
+    }
 
-  if (message.type === "PAGE_LOADED") {
-    console.log("Page loaded notification received from background");
-    sendResponse({ status: "acknowledged" });
-    return true;
-  }
+    if (message.type === "PAGE_LOADED") {
+      console.log("Page loaded notification received from background");
+      sendResponse({ status: "acknowledged" });
+      return true;
+    }
 
-  // For any other message types, acknowledge immediately
-  sendResponse({ status: "ok" });
-  return false; // No async response needed for unknown messages
-});
+    // For any other message types, acknowledge immediately
+    sendResponse({ status: "ok" });
+    return false; // No async response needed for unknown messages
+  },
+);
 
 // Example: Modify page content
 // .chrome-ext-highlight is defined in content-script.css (manifest-declared),
@@ -58,9 +65,10 @@ window.addEventListener("chrome-ext:page-bridge-ready", ((
 }) as EventListener);
 
 // Send message to background script
-void chrome.runtime.sendMessage({
+const loadedMessage: ContentScriptLoadedMessage = {
   type: "CONTENT_SCRIPT_LOADED",
   url: window.location.href,
-});
+};
+void chrome.runtime.sendMessage(loadedMessage);
 
 export {};

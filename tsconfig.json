@@ -29,6 +29,9 @@
       "path": "./packages/popup"
     },
     {
+      "path": "./packages/shared-types"
+    },
+    {
       "path": "./packages/styles"
     }
   ]

@@ -1,3 +1,10 @@
+import type {
+  ContextMenuClickedMessage,
+  ExtensionMessage,
+  ExtensionSettings,
+  PageLoadedMessage,
+} from "@chrome-ext/shared-types";
+
 // Background service worker
 console.log("Background service worker initialized");
 
@@ -8,11 +15,9 @@ const readyTabs = new Set<number>();
 const pendingPageLoads = new Map<number, string>();
 
 const sendPageLoaded = (tabId: number, url: string): void => {
+  const message: PageLoadedMessage = { type: "PAGE_LOADED", url };
   chrome.tabs
-    .sendMessage(tabId, {
-      type: "PAGE_LOADED",
-      url,
-    })
+    .sendMessage(tabId, message)
     .then((response) => {
       console.log("Content script acknowledged page load:", response);
     })
@@ -35,12 +40,11 @@ chrome.runtime.onInstalled.addListener((details) => {
 
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
     // Set default settings or open welcome page
-    void chrome.storage.sync.set({
-      settings: {
-        enabled: true,
-        installDate: Date.now(),
-      },
-    });
+    const settings: ExtensionSettings = {
+      enabled: true,
+      installDate: Date.now(),
+    };
+    void chrome.storage.sync.set({ settings });
   }
 
   // Context menu items persist across service worker restarts, so registering
@@ -57,34 +61,36 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 // Listen for messages from content scripts or popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("Background received message:", message);
+chrome.runtime.onMessage.addListener(
+  (message: ExtensionMessage, sender, sendResponse) => {
+    console.log("Background received message:", message);
 
-  if (message.type === "CONTENT_SCRIPT_LOADED") {
-    console.log("Content script loaded on:", message.url);
+    if (message.type === "CONTENT_SCRIPT_LOADED") {
+      console.log("Content script loaded on:", message.url);
 
-    const tabId = sender.tab?.id;
-    if (tabId !== undefined) {
-      readyTabs.add(tabId);
+      const tabId = sender.tab?.id;
+      if (tabId !== undefined) {
+        readyTabs.add(tabId);
 
-      const pendingUrl = pendingPageLoads.get(tabId);
-      if (pendingUrl !== undefined) {
-        pendingPageLoads.delete(tabId);
-        sendPageLoaded(tabId, pendingUrl);
+        const pendingUrl = pendingPageLoads.get(tabId);
+        if (pendingUrl !== undefined) {
+          pendingPageLoads.delete(tabId);
+          sendPageLoaded(tabId, pendingUrl);
+        }
       }
+
+      sendResponse({ status: "acknowledged" });
     }
 
-    sendResponse({ status: "acknowledged" });
-  }
+    // Example: Handle badge updates
+    if (message.type === "UPDATE_BADGE") {
+      void chrome.action.setBadgeText({ text: message.text ?? "" });
+      void chrome.action.setBadgeBackgroundColor({ color: "#4CAF50" });
+    }
 
-  // Example: Handle badge updates
-  if (message.type === "UPDATE_BADGE") {
-    void chrome.action.setBadgeText({ text: message.text ?? "" });
-    void chrome.action.setBadgeBackgroundColor({ color: "#4CAF50" });
-  }
-
-  return true; // Keep message channel open
-});
+    return true; // Keep message channel open
+  },
+);
 
 // Listen for tab updates
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -113,10 +119,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   console.log("Context menu clicked:", info);
 
   if (tab?.id) {
-    void chrome.tabs.sendMessage(tab.id, {
+    const message: ContextMenuClickedMessage = {
       type: "CONTEXT_MENU_CLICKED",
       info,
-    });
+    };
+    void chrome.tabs.sendMessage(tab.id, message);
   }
 });
 

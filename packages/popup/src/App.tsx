@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import type { PingMessage } from "@chrome-ext/shared-types";
+import { useEffect, useState } from "react";
 import "./App.css";
 
 const App = () => {
@@ -17,10 +18,8 @@ const App = () => {
   const handleSendMessage = () => {
     chrome?.tabs?.query?.({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
-        void chrome.tabs.sendMessage(tabs[0].id, {
-          type: "PING",
-          count,
-        });
+        const message: PingMessage = { type: "PING", count };
+        void chrome.tabs.sendMessage(tabs[0].id, message);
       }
     });
   };
@@ -30,7 +29,13 @@ const App = () => {
       <h1>Chrome Extension Popup New</h1>
       <div className="card">
         <p>Current Tab: {currentTab}</p>
-        <button onClick={() => setCount((count) => count + 1)}>
+        <button
+          onClick={() => {
+            return setCount((count) => {
+              return count + 1;
+            });
+          }}
+        >
           Count is {count}
         </button>
         <button onClick={handleSendMessage}>
