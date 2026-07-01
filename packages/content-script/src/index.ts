@@ -55,7 +55,9 @@ chrome.runtime.onMessage.addListener(
 // web_accessible_resources entry).
 const bridgeScript = document.createElement("script");
 bridgeScript.src = chrome.runtime.getURL("page-bridge.js");
-bridgeScript.addEventListener("load", () => bridgeScript.remove());
+bridgeScript.addEventListener("load", () => {
+  return bridgeScript.remove();
+});
 document.documentElement.appendChild(bridgeScript);
 
 window.addEventListener("chrome-ext:page-bridge-ready", ((

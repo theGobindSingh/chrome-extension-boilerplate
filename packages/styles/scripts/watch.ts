@@ -1,7 +1,7 @@
-import { fileURLToPath } from "url";
-import path from "path";
+import { ChildProcess, spawn } from "child_process";
 import chokidar from "chokidar";
-import { spawn, ChildProcess } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,24 +12,26 @@ let child: ChildProcess | undefined;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 const DEBOUNCE_MS = 200;
 
-function runBuild(): void {
+const runBuild = (): void => {
   if (child) {
     child.kill();
   }
   child = spawn("tsx", ["./scripts/build.ts"], { stdio: "inherit" });
-}
+};
 
-function scheduleBuild(): void {
+const scheduleBuild = (): void => {
   if (debounceTimer) {
     clearTimeout(debounceTimer);
   }
   debounceTimer = setTimeout(runBuild, DEBOUNCE_MS);
-}
+};
 
 const watcher = chokidar.watch(watchPath, { ignoreInitial: true });
 
 watcher.on("all", (event: string, filePath: string) => {
-  console.log(`[styles watcher] ${event} detected in ${filePath}. Rebuilding...`);
+  console.log(
+    `[styles watcher] ${event} detected in ${filePath}. Rebuilding...`,
+  );
   scheduleBuild();
 });
 

@@ -38,7 +38,7 @@ const sendPageLoaded = (tabId: number, url: string): void => {
 chrome.runtime.onInstalled.addListener((details) => {
   console.log("Extension installed:", details.reason);
 
-  if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
+  if (details.reason === `${chrome.runtime.OnInstalledReason.INSTALL}`) {
     // Set default settings or open welcome page
     const settings: ExtensionSettings = {
       enabled: true,
