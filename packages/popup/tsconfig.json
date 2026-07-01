@@ -13,9 +13,7 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "types": ["chrome"],
-    "outDir": "dist",
-    "declarationDir": "dist/types",
-    "emitDeclarationOnly": true,
+    "noEmit": true,
     "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tsbuildinfo"
   },
   "include": ["src", "src/**/*"]

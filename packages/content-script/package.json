@@ -5,9 +5,9 @@
   "main": "dist/content-script.js",
   "scripts": {
     "dev": "concurrently \"tsc -w\" \"rollup -c -w\"",
-    "build": "tsc && rollup -c",
+    "build": "tsc --noEmit && rollup -c",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist node_modules/.cache",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix"
   },
