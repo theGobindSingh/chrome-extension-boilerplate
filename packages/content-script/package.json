@@ -2,7 +2,7 @@
   "name": "@chrome-ext/content-script",
   "version": "1.0.0",
   "type": "module",
-  "main": "dist/content-script.js",
+  "main": "dist/index.cjs",
   "scripts": {
     "dev": "concurrently \"tsc -w\" \"rollup -c -w\"",
     "build": "tsc --noEmit && rollup -c",
