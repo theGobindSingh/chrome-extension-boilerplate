@@ -1,6 +1,6 @@
 # Chrome Extension Assembler
 
-This package assembles the final Chrome extension by copying already-built output from the other workspace packages (`@chrome-ext/background`, `@chrome-ext/content-script`, `@chrome-ext/page-bridge`, `@chrome-ext/popup`, `@chrome-ext/styles`) into `packages/extension/dist/`, and generating `manifest.json`.
+This package assembles the final Chrome extension by copying already-built output from the other workspace packages (`@chrome-ext/background`, `@chrome-ext/content-script`, `@chrome-ext/options`, `@chrome-ext/page-bridge`, `@chrome-ext/popup`, `@chrome-ext/styles`) into `packages/extension/dist/`, and generating `manifest.json`.
 
 It does **not** build the other packages itself — Turbo builds them first (see `turbo.json`), and this package only assembles the resulting files.
 
@@ -16,7 +16,8 @@ dist/
 ├── content-script.css     # from @chrome-ext/styles (SCSS + PostCSS -> dist/content-script.css)
 ├── page-bridge.js          # from @chrome-ext/page-bridge (dist/page-bridge.js), listed in web_accessible_resources
 ├── popup.html              # from @chrome-ext/popup (dist/index.html, renamed)
-├── assets/                 # CSS/JS bundles referenced by popup.html
+├── options.html            # from @chrome-ext/options (dist/index.html, renamed), the manifest's options_page
+├── assets/                 # CSS/JS bundles referenced by popup.html and options.html
 └── icons/                  # copied as-is from packages/extension/static/icons/
 ```
 
@@ -73,6 +74,7 @@ The manifest is generated in `src/index.ts` inside `createManifest()`. You can c
 - `web_accessible_resources` (`page-bridge.js`, built by `@chrome-ext/page-bridge`)
 - Background service worker configuration
 - Popup/action settings
+- `options_page` (`options.html`, built by `@chrome-ext/options`)
 - Icon paths
 
 ### Icons
@@ -87,16 +89,16 @@ These are copied as-is into `dist/icons/`. There is no fallback/auto-generated i
 
 ### Static assets
 
-Any other files placed in `packages/extension/static/` alongside `icons/` are **not** currently copied by the assembler — only the `icons/` subdirectory and the popup's build output are handled in `copyStaticFiles()`. Extend `src/index.ts` if you need to copy additional static assets.
+Any other files placed in `packages/extension/static/` alongside `icons/` are **not** currently copied by the assembler — only the `icons/` subdirectory and the popup/options build output are handled in `copyStaticFiles()`. Extend `src/index.ts` if you need to copy additional static assets.
 
 ## How it works
 
 `src/index.ts` runs these steps in order:
 
-1. `discoverChromeExtPackages()` — resolves `@chrome-ext/background`, `@chrome-ext/content-script`, and `@chrome-ext/page-bridge` via pnpm's `node_modules` workspace symlinks, and locates each package's built main file. (`@chrome-ext/popup` and `@chrome-ext/styles` are handled separately in `copyStaticFiles()` since their outputs aren't a single `.js` main file.)
-2. `copyPackageFiles()` — copies each package's main file into `dist/` as `<name>.js` (e.g. `background.js`, `page-bridge.js`).
+1. `discoverChromeExtPackages()` — resolves `@chrome-ext/background`, `@chrome-ext/content-script`, `@chrome-ext/options`, `@chrome-ext/page-bridge`, and `@chrome-ext/popup` via pnpm's `node_modules` workspace symlinks, and locates each package's built main file. (`@chrome-ext/styles` is handled separately in `copyStaticFiles()` since its output isn't a single `.js` main file.)
+2. `copyPackageFiles()` — copies each package's main file into `dist/` as `<name>.js` (e.g. `background.js`, `page-bridge.js`, `options.js`).
 3. `createManifest()` — writes `dist/manifest.json`.
-4. `copyStaticFiles()` — copies `static/icons/*` into `dist/icons/`, the popup's built `index.html`/`assets/*` into `dist/popup.html`/`dist/assets/*`, and `@chrome-ext/styles`' compiled CSS into `dist/content-script.css`.
+4. `copyStaticFiles()` — copies `static/icons/*` into `dist/icons/`; `popup`'s and `options`' built `index.html`/`assets/*` via a shared `copyHtmlAppPackage()` helper (renamed to `dist/popup.html`/`dist/options.html`); and `@chrome-ext/styles`' compiled CSS into `dist/content-script.css`.
 
 ## Troubleshooting
 

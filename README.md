@@ -13,6 +13,7 @@ A batteries-included template for building a Chrome Extension (MV3) with TypeScr
 ## Repository layout
 
 - `packages/popup` — React popup UI (Vite)
+- `packages/options` — React options page (Vite), for settings that need to persist across opens (`chrome.storage.sync`) rather than the popup's quick-action pattern
 - `packages/content-script` — Content script injected into pages (Rollup)
 - `packages/page-bridge` — Script injected into the page's own JS context ("MAIN world"), loaded by the content script as a `web_accessible_resource` (Rollup)
 - `packages/styles` — SCSS + PostCSS pipeline that compiles `content-script.css`
@@ -56,7 +57,8 @@ packages/extension/dist/
 ├─ content-script.css     # from @chrome-ext/styles (SCSS + PostCSS)
 ├─ page-bridge.js         # from @chrome-ext/page-bridge (web_accessible_resources)
 ├─ popup.html             # from @chrome-ext/popup build
-├─ assets/*               # popup static assets
+├─ options.html           # from @chrome-ext/options build
+├─ assets/*               # popup + options static assets
 └─ icons/*                # your icons from packages/extension/static/icons
 ```
 
@@ -94,6 +96,7 @@ Notes:
 - Manifest: edit `packages/extension/src/index.ts` (permissions, matches, background, action)
 - Icons: drop PNGs into `packages/extension/static/icons/` (16/48/128). A `.gitkeep` is included so the folder exists.
 - Popup: edit `packages/popup/src/*` and `index.html`. Build outputs are copied into the assembled extension.
+- Options page: edit `packages/options/src/*` and `index.html`, same pattern as popup.
 - Background/content script: edit `packages/background/src/index.ts` and `packages/content-script/src/index.ts`.
 
 ## Docs
