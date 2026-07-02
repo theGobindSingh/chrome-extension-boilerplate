@@ -28,6 +28,7 @@
       "dependsOn": [
         "@chrome-ext/background#build",
         "@chrome-ext/content-script#build",
+        "@chrome-ext/options#build",
         "@chrome-ext/page-bridge#build",
         "@chrome-ext/popup#build",
         "@chrome-ext/styles#build"

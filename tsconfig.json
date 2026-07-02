@@ -23,6 +23,9 @@
       "path": "./packages/extension"
     },
     {
+      "path": "./packages/options"
+    },
+    {
       "path": "./packages/page-bridge"
     },
     {

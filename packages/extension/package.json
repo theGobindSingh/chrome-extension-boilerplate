@@ -13,6 +13,7 @@
   "dependencies": {
     "@chrome-ext/background": "workspace:*",
     "@chrome-ext/content-script": "workspace:*",
+    "@chrome-ext/options": "workspace:*",
     "@chrome-ext/page-bridge": "workspace:*",
     "@chrome-ext/popup": "workspace:*",
     "@chrome-ext/styles": "workspace:*"

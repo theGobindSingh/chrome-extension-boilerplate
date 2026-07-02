@@ -191,6 +191,7 @@ function discoverChromeExtPackages(): ChromeExtPackage[] {
   const expectedPackages = [
     "@chrome-ext/background",
     "@chrome-ext/content-script",
+    "@chrome-ext/options",
     "@chrome-ext/page-bridge",
     "@chrome-ext/popup",
   ];
@@ -320,6 +321,12 @@ function createManifest(): void {
       },
     },
 
+    // Full-page settings surface - opens in its own tab. Built from
+    // packages/options. Unlike the popup (closes on outside click, no
+    // built-in persistence), this is the appropriate surface for real
+    // configuration.
+    options_page: "options.html",
+
     // Background service worker - runs in the background
     background: {
       service_worker: "background.js", // Built from packages/background
@@ -371,11 +378,57 @@ function createManifest(): void {
 }
 
 /**
+ * Copies a Vite-built HTML app package (popup, options, ...) into the
+ * extension dist folder: dist/index.html -> dist/<htmlTargetName>, and
+ * dist/assets/* -> dist/assets/* (Vite content-hashes asset filenames, so
+ * multiple app packages sharing the same "assets" directory don't collide).
+ *
+ * @returns Any missing-file entries (empty if everything copied cleanly)
+ */
+function copyHtmlAppPackage(
+  packageName: string,
+  htmlTargetName: string,
+): string[] {
+  const missing: string[] = [];
+
+  const packagePath = resolvePackageDir(packageName);
+  if (!packagePath) {
+    missing.push(`${packageName} not resolved in node_modules`);
+    return missing;
+  }
+
+  const htmlSource = join(packagePath, "dist", "index.html");
+  if (existsSync(htmlSource)) {
+    const htmlTarget = join(DIST_DIR, htmlTargetName);
+    copyFileSync(htmlSource, htmlTarget);
+    log(`  ✓ Copied ${htmlTargetName}`, "success");
+  } else {
+    log(`  Warning: ${htmlTargetName} source not found: ${htmlSource}`, "warn");
+    missing.push(`${htmlTargetName} not found (${htmlSource})`);
+  }
+
+  const assetsSource = join(packagePath, "dist", "assets");
+  if (existsSync(assetsSource)) {
+    const assetsTarget = join(DIST_DIR, "assets");
+    ensureDir(assetsTarget);
+
+    const assetFiles = readdirSync(assetsSource);
+    for (const file of assetFiles) {
+      const sourcePath = join(assetsSource, file);
+      const targetPath = join(assetsTarget, file);
+      copyFileSync(sourcePath, targetPath);
+      log(`  ✓ Copied asset: ${file}`, "success");
+    }
+  }
+
+  return missing;
+}
+
+/**
  * Copies static assets to the extension dist folder
  * Includes:
  * - Extension icons from packages/extension/static/icons/
- * - Popup HTML from packages/popup/dist/index.html
- * - Popup assets (CSS, JS bundles) from packages/popup/dist/assets/
+ * - Popup and options HTML/assets (built with Vite)
  */
 function copyStaticFiles(): string[] {
   const staticDir = join(EXTENSION_DIR, "static");
@@ -407,40 +460,12 @@ function copyStaticFiles(): string[] {
     }
   }
 
-  // === COPY POPUP HTML ===
-  // Vite builds the popup to node_modules/@chrome-ext/popup/dist/index.html
-  // We rename it to popup.html for the manifest
-  const popupPackagePath = resolvePackageDir("@chrome-ext/popup");
-  if (popupPackagePath) {
-    const popupHtmlSource = join(popupPackagePath, "dist", "index.html");
-    if (existsSync(popupHtmlSource)) {
-      const popupHtmlTarget = join(DIST_DIR, "popup.html");
-      copyFileSync(popupHtmlSource, popupHtmlTarget);
-      log(`  ✓ Copied popup.html`, "success");
-    } else {
-      log(`  Warning: popup.html source not found: ${popupHtmlSource}`, "warn");
-      missing.push(`popup.html not found (${popupHtmlSource})`);
-    }
-
-    // === COPY POPUP ASSETS ===
-    // Vite bundles CSS and JS into node_modules/@chrome-ext/popup/dist/assets/
-    // These are referenced by the HTML file
-    const popupAssetsSource = join(popupPackagePath, "dist", "assets");
-    if (existsSync(popupAssetsSource)) {
-      const popupAssetsTarget = join(DIST_DIR, "assets");
-      ensureDir(popupAssetsTarget);
-
-      const assetFiles = readdirSync(popupAssetsSource);
-      for (const file of assetFiles) {
-        const sourcePath = join(popupAssetsSource, file);
-        const targetPath = join(popupAssetsTarget, file);
-        copyFileSync(sourcePath, targetPath);
-        log(`  ✓ Copied asset: ${file}`, "success");
-      }
-    }
-  } else {
-    missing.push("@chrome-ext/popup not resolved in node_modules");
-  }
+  // === COPY POPUP + OPTIONS HTML/ASSETS ===
+  // Vite builds each to node_modules/@chrome-ext/<name>/dist/index.html,
+  // renamed to <name>.html for the manifest; CSS/JS bundles come from
+  // dist/assets/.
+  missing.push(...copyHtmlAppPackage("@chrome-ext/popup", "popup.html"));
+  missing.push(...copyHtmlAppPackage("@chrome-ext/options", "options.html"));
 
   // === COPY CONTENT SCRIPT CSS ===
   // @chrome-ext/styles compiles SCSS + PostCSS to a single content-script.css,
