@@ -35,6 +35,9 @@
       "path": "./packages/shared-types"
     },
     {
+      "path": "./packages/storage"
+    },
+    {
       "path": "./packages/styles"
     }
   ]

@@ -1,34 +1,34 @@
 import type { ExtensionSettings } from "@chrome-ext/shared-types";
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  onSettingsChanged,
+  setSettings,
+} from "@chrome-ext/storage";
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
-const DEFAULT_SETTINGS: ExtensionSettings = {
-  enabled: true,
-  installDate: Date.now(),
-};
-
 const App = () => {
-  const [settings, setSettings] = useState<ExtensionSettings>(DEFAULT_SETTINGS);
+  const [localSettings, setLocalSettings] =
+    useState<ExtensionSettings>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    // Options pages read/write chrome.storage directly, rather than
-    // messaging a background/content script - unlike the popup's
-    // quick-action pattern, settings need to persist across opens.
-    chrome?.storage?.sync?.get?.(["settings"], (result) => {
-      if (result.settings) {
-        setSettings(result.settings as ExtensionSettings);
-      }
-    });
+    // Options pages read/write chrome.storage directly (via
+    // @chrome-ext/storage), rather than messaging a background/content
+    // script - unlike the popup's quick-action pattern, settings need to
+    // persist across opens.
+    void getSettings().then(setLocalSettings);
+
+    // Keep in sync if settings change elsewhere (e.g. background writing
+    // a fresh installDate, or this page open in two tabs at once).
+    return onSettingsChanged(setLocalSettings);
   }, []);
 
   const handleToggleEnabled = () => {
-    const next: ExtensionSettings = {
-      ...settings,
-      enabled: !settings.enabled,
-    };
-    setSettings(next);
-    void chrome?.storage?.sync?.set?.({ settings: next }).then(() => {
+    const next = { ...localSettings, enabled: !localSettings.enabled };
+    setLocalSettings(next);
+    void setSettings(next).then(() => {
       setSaved(true);
       setTimeout(() => {
         setSaved(false);
@@ -37,8 +37,8 @@ const App = () => {
   };
 
   const installedAt = useMemo(() => {
-    return new Date(settings.installDate).toLocaleString();
-  }, [settings.installDate]);
+    return new Date(localSettings.installDate).toLocaleString();
+  }, [localSettings.installDate]);
 
   return (
     <div className="app">
@@ -47,7 +47,7 @@ const App = () => {
         <label>
           <input
             type="checkbox"
-            checked={settings.enabled}
+            checked={localSettings.enabled}
             onChange={handleToggleEnabled}
           />
           Enabled

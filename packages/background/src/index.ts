@@ -1,9 +1,9 @@
 import type {
   ContextMenuClickedMessage,
   ExtensionMessage,
-  ExtensionSettings,
   PageLoadedMessage,
 } from "@chrome-ext/shared-types";
+import { setSettings } from "@chrome-ext/storage";
 
 // Background service worker
 console.log("Background service worker initialized");
@@ -40,11 +40,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
   if (details.reason === `${chrome.runtime.OnInstalledReason.INSTALL}`) {
     // Set default settings or open welcome page
-    const settings: ExtensionSettings = {
-      enabled: true,
-      installDate: Date.now(),
-    };
-    void chrome.storage.sync.set({ settings });
+    void setSettings({ enabled: true, installDate: Date.now() });
   }
 
   // Context menu items persist across service worker restarts, so registering
