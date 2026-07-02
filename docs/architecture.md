@@ -1,6 +1,6 @@
 # Architecture
 
-This monorepo contains eight packages that together produce a Chrome Extension (Manifest V3).
+This monorepo contains nine packages that together produce a Chrome Extension (Manifest V3).
 
 ## Packages
 
@@ -12,6 +12,9 @@ This monorepo contains eight packages that together produce a Chrome Extension (
   - Opens in its own tab (`manifest.options_page`). The appropriate surface for real configuration - demonstrates reading/writing `chrome.storage.sync` via the shared `ExtensionSettings` type, unlike the popup's message-passing demo.
 - `@chrome-ext/shared-types` — Pure TypeScript types (`ExtensionMessage`, `ExtensionResponse`, `ExtensionSettings`), no build step.
   - `types`/`main` point straight at `src/index.ts`; every consumer uses `import type`, which is erased at compile time, so there's nothing to bundle.
+- `@chrome-ext/storage` — Typed wrapper around `chrome.storage.sync`, built with Rollup (mjs/cjs, no IIFE - it's a library dependency, never a manifest entry).
+  - `getSettings()`/`setSettings(partial)`/`onSettingsChanged(callback)`, keyed to `ExtensionSettings`. Consumed by `background` (writes defaults on install) and `options` (reads/writes/reacts to changes).
+  - Its `package.json` `exports` separate `"types"` (points at `src/index.ts`, always resolvable) from `"import"`/`"require"` (the compiled `dist/*.js`, needed only for the consumer's actual bundle) - otherwise consumers' independent `tsc --noEmit` would fail after a `pnpm clean` until `storage` was rebuilt.
 - `@chrome-ext/content-script` — Page-injected script built with Rollup.
   - Outputs: `dist/content-script.js` (IIFE), plus ESM/CJS builds for reuse.
   - Runs in an isolated JS world (standard content-script sandboxing) with access to `chrome.*` APIs.

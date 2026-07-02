@@ -18,6 +18,8 @@ A batteries-included template for building a Chrome Extension (MV3) with TypeScr
 - `packages/page-bridge` — Script injected into the page's own JS context ("MAIN world"), loaded by the content script as a `web_accessible_resource` (Rollup)
 - `packages/styles` — SCSS + PostCSS pipeline that compiles `content-script.css`
 - `packages/background` — Background service worker (Rollup)
+- `packages/shared-types` — Shared TypeScript types (message contracts, settings shape), no build step
+- `packages/storage` — Typed wrapper around `chrome.storage.sync` (get/set/onChanged), used by `background` and `options`
 - `packages/extension` — Assembler that creates the final Chrome extension `dist/`
 
 ## Requirements

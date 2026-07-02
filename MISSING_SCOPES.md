@@ -1,58 +1,26 @@
 # Missing Scopes — Packages Not Yet Covered
 
-Current packages in this monorepo: `background`, `content-script`, `page-bridge`, `popup`, `styles`, `extension` (assembler). This document tracks additional scopes a "batteries-included" Chrome extension template would typically cover, but this repo doesn't yet — so future work has a starting point instead of starting from a blank page.
+Current packages in this monorepo: `background`, `content-script`, `options`, `page-bridge`, `popup`, `shared-types`, `storage`, `styles`, `extension` (assembler). This document tracks additional scopes a "batteries-included" Chrome extension template would typically cover, but this repo doesn't yet — so future work has a starting point instead of starting from a blank page.
 
-Ordered roughly by value delivered relative to effort.
-
----
-
-## 1. `@chrome-ext/shared` — typed message contracts (highest priority)
-
-**The gap:** message `type` strings (`"PING"`, `"PAGE_LOADED"`, `"CONTENT_SCRIPT_LOADED"`, `"UPDATE_BADGE"`, `"CONTEXT_MENU_CLICKED"`) are hand-typed as string literals independently in at least three places:
-
-- `packages/background/src/index.ts` (sends/receives `CONTENT_SCRIPT_LOADED`, `UPDATE_BADGE`, `PAGE_LOADED`, `CONTEXT_MENU_CLICKED`)
-- `packages/content-script/src/index.ts` (receives `PING`, `PAGE_LOADED`; sends `CONTENT_SCRIPT_LOADED`)
-- `packages/popup/src/App.tsx` (sends `PING`)
-
-None of these share a type definition. `message.type === "PING"` typechecks against `any`/untyped payloads on both sides — a typo in one package (`"Ping"`, `"UPDATED_BADGE"`) or a payload shape drift (e.g. `count: number` vs `count: string`) is invisible to `tsc` and only surfaces at runtime, in production, inside a `chrome.runtime.onMessage` callback where errors are easy to miss.
-
-**Why it matters:** this is the one gap that's a correctness bug waiting to happen, not just a missing feature demo. Every other item below is "a surface this template doesn't showcase yet"; this one is "the existing code is not type-safe where it looks like it is."
-
-**What it would contain:**
-- A discriminated union of message types, e.g.:
-  ```ts
-  export type ExtensionMessage =
-    | { type: "PING"; count: number }
-    | { type: "PAGE_LOADED"; url: string }
-    | { type: "CONTENT_SCRIPT_LOADED"; url: string }
-    | { type: "UPDATE_BADGE"; text: string }
-    | { type: "CONTEXT_MENU_CLICKED"; info: chrome.contextMenus.OnClickData };
-  ```
-- Possibly a typed wrapper around `chrome.runtime.sendMessage`/`onMessage.addListener` so callers get autocomplete and exhaustiveness checking on `message.type` instead of raw untyped objects.
-- Shared constants/enums if there's a reason to avoid magic strings entirely.
-
-**Tradeoff:** all three consuming packages (`background`, `content-script`, `popup`) need a new workspace dependency on `@chrome-ext/shared`, and existing message-handling code needs light refactoring to import the union type instead of inlining `{ type: string; ... }`. Low risk, moderate churn.
-
-**Suggested structure:** a pure TS package, no bundler needed beyond `tsc` — this is types-only (or types + a couple of trivial runtime helpers), consumed via `workspace:*` and TS project references, not bundled into the final extension at all (it disappears at compile time unless the runtime helpers are used, in which case it'd need a build step like `background`/`content-script`).
+Ordered roughly by value delivered relative to effort. Items 1, 2, and 4 have since been built; kept below (marked ✅ Done) for the original rationale, since that's still useful context for anyone touching those packages.
 
 ---
 
-## 2. Options page (`options_page` / `options_ui`)
+## 1. ✅ Done — `@chrome-ext/shared-types`: typed message contracts
 
-**The gap:** MV3 supports a full-page settings surface distinct from the popup — `options_page` (opens in a new tab) or `options_ui` (embedded in `chrome://extensions`). Neither exists here; the popup is the only UI surface.
+**The gap (as originally written):** message `type` strings (`"PING"`, `"PAGE_LOADED"`, `"CONTENT_SCRIPT_LOADED"`, `"UPDATE_BADGE"`, `"CONTEXT_MENU_CLICKED"`) were hand-typed as string literals independently in `background`, `content-script`, and `popup`, with no shared definition — a typo or payload-shape drift was invisible to `tsc` and only surfaced at runtime.
 
-**Why it matters:** popups are constrained (small viewport, closes on blur, no persistent state across opens without `chrome.storage`) and are a poor fit for anything beyond a couple of buttons. Any extension with real configuration (API keys, feature toggles, allow/deny lists) needs an options page. Its absence means this template only demonstrates the "quick action" UI pattern, not the "settings" pattern — and the two have different lifecycle and storage-access conventions worth showing.
+**What was built:** `packages/shared-types` — a discriminated `ExtensionMessage` union, an `ExtensionResponse` union, and an `ExtensionSettings` interface. No build step: `types`/`main` point straight at `src/index.ts` since every consumer uses `import type` (erased at compile time). Adopted in `background`, `content-script`, and `popup`.
 
-**What it would contain:** likely a second Vite-built React app, structurally similar to `packages/popup` (could even share components/build config), with its own `dist/index.html` → `dist/options.html`. The assembler would need a new copy step (similar to the existing popup HTML/assets copy) and the manifest would need:
-```json
-"options_page": "options.html"
-```
-or, for the embedded variant:
-```json
-"options_ui": { "page": "options.html", "open_in_tab": false }
-```
+---
 
-**Tradeoff:** if it's Vite + React like popup, most of the work is copy-paste-and-adapt from `packages/popup`, so implementation cost is low; the main design decision is whether to extract shared React setup (Vite config, tsconfig, ESLint config) into something reusable, or accept duplication for template clarity. Given [[MISSING_SCOPES]] convention elsewhere in this repo (each package intentionally self-contained rather than sharing build config), duplication is probably the right call for a template.
+## 2. ✅ Done — `@chrome-ext/options`: options page (`options_page`)
+
+**The gap (as originally written):** MV3 supports a full-page settings surface distinct from the popup — `options_page` (opens in a new tab) or `options_ui` (embedded in `chrome://extensions`). Neither existed; the popup was the only UI surface.
+
+**What was built:** `packages/options` — structurally almost identical to `packages/popup` (same Vite/React/TS setup; duplication accepted per the tradeoff below), wired into the manifest's `options_page: "options.html"`. Its content is deliberately different from popup's: it demonstrates the settings/persistence pattern via `@chrome-ext/storage` (see #4) rather than repeating popup's message-passing demo.
+
+**Tradeoff (as originally written, still relevant):** the main design decision was whether to extract shared React/Vite/tsconfig/ESLint setup into something reusable, or accept duplication for template clarity. Given this repo's existing convention (every package self-contained rather than sharing build config), duplication was the right call — confirmed once options existed, since the two packages' `vite.config.ts`/`tsconfig.json` are nearly line-for-line identical and that's fine.
 
 ---
 
@@ -73,15 +41,15 @@ Also typically wired up via `chrome.sidePanel.setPanelBehavior({ openPanelOnActi
 
 ---
 
-## 4. Typed `chrome.storage` wrapper
+## 4. ✅ Done — `@chrome-ext/storage`: typed `chrome.storage.sync` wrapper
 
-**The gap:** `packages/background/src/index.ts` calls `chrome.storage.sync.set({...})` directly with an inline, untyped settings object (`{ enabled: true, installDate: Date.now() }`). There's no shared schema for what's actually stored, no read-side helper, and nothing preventing background/popup/options from disagreeing on the shape of stored data over time.
+**The gap (as originally written):** `packages/background/src/index.ts` called `chrome.storage.sync.set({...})` directly with an inline, untyped settings object. There was no shared schema for what's actually stored, no read-side helper, and nothing preventing background/options from disagreeing on the shape of stored data over time. `chrome.storage` is asynchronous, has no runtime schema validation, and silently returns `undefined` for missing/renamed keys.
 
-**Why it matters:** `chrome.storage` is asynchronous, has no runtime schema validation, and silently returns `undefined` for missing/renamed keys — a classic source of "worked in dev, broke after an update changed the settings shape" bugs. A small typed wrapper (get/set functions keyed to a shared interface, ideally the same one used by [[MISSING_SCOPES]] item 1's `@chrome-ext/shared`) removes an entire class of bugs cheaply.
+**What was built:** `packages/storage` — `getSettings()` (merges the stored value over `DEFAULT_SETTINGS`, so a missing/renamed key never comes back as `undefined`), `setSettings(partial)` (merges over current settings and persists), and `onSettingsChanged(callback)` (wraps `chrome.storage.onChanged` so e.g. options open in two tabs, or open alongside background writing a fresh `installDate`, stay in sync). Keyed to the shared `ExtensionSettings` type from `@chrome-ext/shared-types`.
 
-**What it would contain:** a handful of functions like `getSettings(): Promise<Settings>` / `setSettings(partial: Partial<Settings>): Promise<void>`, backed by a `Settings` interface, plus sensible defaults merging. Small enough to live inside `@chrome-ext/shared` rather than justify its own package.
+Unlike `shared-types`, this package has real runtime code (bundled via Rollup, mjs/cjs, no IIFE — it's a library dependency, never a manifest entry, consumed by `background` and `options`). Its `package.json` `exports` deliberately separates `"types"` (points straight at `src/index.ts`, always resolvable) from `"import"`/`"require"` (the compiled `dist/*.js`, which only needs to exist by the time a consumer's *bundler* runs, not its independent `tsc --noEmit`) — otherwise a fresh `pnpm clean` breaks consumers' type-checking until `storage` is rebuilt.
 
-**Tradeoff:** minimal — this is a small addition once `@chrome-ext/shared` exists, and arguably not worth a standalone package on its own.
+**Tradeoff (as originally written) — revisited:** the original note suggested folding this into `@chrome-ext/shared-types` rather than a standalone package, since it's small. It was built as its own package instead (per explicit direction), which turned out to matter: `shared-types` being 100% type-only (no build step, no `dist/`) is precisely what makes it safe to reference directly from `src/`. Mixing in real runtime code would have forced `shared-types` to grow a build step too, coupling every consumer's type-checking to whether `shared-types` had been *built*, not just whether it type-checks — the exact bug this package hit and had to work around. Keeping them separate keeps that invariant intact.
 
 ---
 
@@ -121,8 +89,9 @@ These aren't missing *packages/scopes* so much as missing *process/tooling*, and
 
 ## Suggested order if picking this up
 
-1. `@chrome-ext/shared` (message types + storage wrapper) — fixes a real type-safety gap in existing code, benefits every other package.
-2. Options page — highest-value missing UI surface, most template value per unit of effort.
-3. Side panel — same shape as options page, do together if extracting shared React/Vite config becomes worthwhile.
-4. i18n scaffold — cheap, do opportunistically.
-5. DevTools panel — only if a concrete need shows up; otherwise leave as a documented gap.
+1. ~~`@chrome-ext/shared-types` (message types)~~ — done.
+2. ~~Options page~~ — done.
+3. ~~`@chrome-ext/storage` (typed settings wrapper)~~ — done.
+4. Side panel — same shape as options page (structurally could copy `packages/options`), now that pattern exists.
+5. i18n scaffold — cheap, do opportunistically.
+6. DevTools panel — only if a concrete need shows up; otherwise leave as a documented gap.
